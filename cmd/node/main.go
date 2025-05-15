@@ -2,6 +2,8 @@ package main
 
 import (
 	"flag"
+
+	"github.com/matthewwangg/distributed-kv-store/internal/dht"
 )
 
 var (
@@ -13,4 +15,13 @@ var (
 
 func main() {
 	flag.Parse()
+
+	node := &dht.Node{
+		ID:       *nodeIdentifier,
+		PeerAddr: *peerAddress,
+		JoinAddr: *joinAddress,
+		DataDir:  *dataDirectory,
+	}
+
+	node.Start()
 }
