@@ -9,7 +9,7 @@ service Node {
 }
 
 message JoinRequest {
-  string ip = 1;
+  string id = 1;
   string addr = 2;
 }
 
@@ -18,6 +18,6 @@ message JoinResponse {
 }
 
 message Peer {
-  string ip = 1;
+  string id = 1;
   string addr = 2;
 }
