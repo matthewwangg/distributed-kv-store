@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package node;
+
+option go_package = "proto/node;node";
+
+service Node {
+  rpc Join(JoinRequest) returns (JoinResponse);
+}
+
+message JoinRequest {
+  string ip = 1;
+  string addr = 2;
+}
+
+message JoinResponse {
+  repeated Peer peers = 1;
+}
+
+message Peer {
+  string ip = 1;
+  string addr = 2;
+}
