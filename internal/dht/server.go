@@ -28,7 +28,7 @@ func (n *Node) Join(ctx context.Context, req *pb.JoinRequest) (*pb.JoinResponse,
 
 func (n *Node) NotifyRebuild(ctx context.Context, req *pb.RebuildRequest) (*pb.RebuildResponse, error) {
 	n.NodeState = StateRebuilding
-	if req.Reason == "join" {
+	if req.Reason == pb.Reason_JOIN {
 		n.Peers[req.Id] = req.Addr
 	}
 

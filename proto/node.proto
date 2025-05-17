@@ -19,10 +19,15 @@ message JoinResponse {
   repeated Peer peers = 1;
 }
 
+enum Reason {
+  JOIN = 0;
+  LEAVE = 1;
+}
+
 message RebuildRequest {
   string id = 1;
   string addr = 2;
-  string reason = 3;
+  Reason reason = 3;
 }
 
 message RebuildResponse {

@@ -69,7 +69,7 @@ func (n *Node) ClientNotifyRebuild(peerList []*pb.Peer, newPeerId string, newPee
 		res, err := client.NotifyRebuild(ctx, &pb.RebuildRequest{
 			Id:     newPeerId,
 			Addr:   newPeerAddr,
-			Reason: "join",
+			Reason: pb.Reason_JOIN,
 		})
 
 		cancel()
