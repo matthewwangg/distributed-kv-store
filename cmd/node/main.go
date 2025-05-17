@@ -2,10 +2,10 @@ package main
 
 import (
 	"flag"
-	"github.com/matthewwangg/distributed-kv-store/internal/cli"
 	"log"
 
-	"github.com/matthewwangg/distributed-kv-store/internal/dht"
+	cli "github.com/matthewwangg/distributed-kv-store/internal/cli"
+	dht "github.com/matthewwangg/distributed-kv-store/internal/dht"
 )
 
 var (
