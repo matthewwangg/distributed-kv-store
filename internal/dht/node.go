@@ -21,7 +21,7 @@ type Node struct {
 	pb.UnimplementedNodeServer
 }
 
-func (n *Node) Start() {
+func (n *Node) Start() error {
 	if n.JoinAddr != "" {
 		peers, err := n.ClientJoin()
 		if err != nil {
@@ -31,7 +31,7 @@ func (n *Node) Start() {
 	} else {
 		n.Peers = make(map[string]string)
 	}
-	
+
 	n.Peers[n.ID] = n.PeerAddr
 
 	lis, err := net.Listen("tcp", n.PeerAddr)
@@ -43,7 +43,12 @@ func (n *Node) Start() {
 	pb.RegisterNodeServer(grpcServer, n)
 
 	fmt.Printf("Node listening at %s\n", n.PeerAddr)
-	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatalf("Failed to serve: %v", err)
-	}
+
+	go func() {
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatalf("Failed to serve: %v", err)
+		}
+	}()
+
+	return nil
 }

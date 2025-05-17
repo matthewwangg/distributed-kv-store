@@ -2,6 +2,8 @@ package main
 
 import (
 	"flag"
+	"github.com/matthewwangg/distributed-kv-store/internal/cli"
+	"log"
 
 	"github.com/matthewwangg/distributed-kv-store/internal/dht"
 )
@@ -23,5 +25,10 @@ func main() {
 		DataDir:  *dataDirectory,
 	}
 
-	node.Start()
+	err := node.Start()
+	if err != nil {
+		log.Fatalf("Startup failed: %v", err)
+	}
+
+	cli.RunREPL(node)
 }
