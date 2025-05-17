@@ -41,7 +41,7 @@ func (n *Node) ClientJoin(joinAddr string) (map[string]string, error) {
 		if peerAddr == n.PeerAddr {
 			continue
 		}
-		err := n.ClientNotifyRebuildComplete(peerAddr)
+		err := n.ClientNotifyRebuildComplete(peerAddr, pb.Reason_JOIN)
 		if err != nil {
 			return nil, fmt.Errorf("failed to notify rebuild complete: %w", err)
 		}
@@ -51,7 +51,7 @@ func (n *Node) ClientJoin(joinAddr string) (map[string]string, error) {
 	return peers, nil
 }
 
-func (n *Node) ClientNotifyRebuild(peerList []*pb.Peer, newPeerId string, newPeerAddr string) error {
+func (n *Node) ClientNotifyRebuild(peerList []*pb.Peer, newPeerId string, newPeerAddr string, reason pb.Reason) error {
 	for _, peer := range peerList {
 		if peer.Id == n.ID || peer.Id == newPeerId {
 			continue
@@ -69,7 +69,7 @@ func (n *Node) ClientNotifyRebuild(peerList []*pb.Peer, newPeerId string, newPee
 		res, err := client.NotifyRebuild(ctx, &pb.RebuildRequest{
 			Id:     newPeerId,
 			Addr:   newPeerAddr,
-			Reason: pb.Reason_JOIN,
+			Reason: reason,
 		})
 
 		cancel()
@@ -83,7 +83,7 @@ func (n *Node) ClientNotifyRebuild(peerList []*pb.Peer, newPeerId string, newPee
 	return nil
 }
 
-func (n *Node) ClientNotifyRebuildComplete(peerAddr string) error {
+func (n *Node) ClientNotifyRebuildComplete(peerAddr string, reason pb.Reason) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 

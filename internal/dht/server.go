@@ -18,7 +18,7 @@ func (n *Node) Join(ctx context.Context, req *pb.JoinRequest) (*pb.JoinResponse,
 		})
 	}
 
-	err := n.ClientNotifyRebuild(peerList, req.Id, req.Addr)
+	err := n.ClientNotifyRebuild(peerList, req.Id, req.Addr, pb.Reason_JOIN)
 	if err != nil {
 		return nil, err
 	}
