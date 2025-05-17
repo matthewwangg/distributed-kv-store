@@ -22,7 +22,17 @@ type Node struct {
 }
 
 func (n *Node) Start() {
-	n.Peers = map[string]string{n.ID: n.PeerAddr}
+	if n.JoinAddr != "" {
+		peers, err := n.ClientJoin()
+		if err != nil {
+			log.Fatalf("Error while attempting to join DHT at %s: %v", n.JoinAddr, err)
+		}
+		n.Peers = peers
+	} else {
+		n.Peers = make(map[string]string)
+	}
+	
+	n.Peers[n.ID] = n.PeerAddr
 
 	lis, err := net.Listen("tcp", n.PeerAddr)
 	if err != nil {
