@@ -38,12 +38,14 @@ func (n *Node) ClientJoin(joinAddr string) (map[string]string, error) {
 	}
 
 	for _, peerAddr := range peers {
+		if peerAddr == n.PeerAddr {
+			continue
+		}
 		err := n.ClientNotifyRebuildComplete(peerAddr)
 		if err != nil {
 			return nil, fmt.Errorf("failed to notify rebuild complete: %w", err)
 		}
 	}
-
 	n.NodeState = StateInDHT
 
 	return peers, nil
