@@ -11,11 +11,11 @@ import (
 	pb "github.com/matthewwangg/distributed-kv-store/proto/node"
 )
 
-func (n *Node) ClientJoin() (map[string]string, error) {
+func (n *Node) ClientJoin(joinAddr string) (map[string]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	conn, err := grpc.NewClient(n.JoinAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(joinAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gRPC client: %w", err)
 	}

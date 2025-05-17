@@ -13,7 +13,6 @@ import (
 type Node struct {
 	ID       string            `json:"id"`
 	PeerAddr string            `json:"peerAddr"`
-	JoinAddr string            `json:"joinAddr"`
 	DataDir  string            `json:"dataDir"`
 	Store    map[string]string `json:"store"`
 	Peers    map[string]string `json:"peers"`
@@ -21,17 +20,8 @@ type Node struct {
 	pb.UnimplementedNodeServer
 }
 
-func (n *Node) Start() {
-	if n.JoinAddr != "" {
-		peers, err := n.ClientJoin()
-		if err != nil {
-			log.Fatalf("Error while attempting to join DHT at %s: %v", n.JoinAddr, err)
-		}
-		n.Peers = peers
-	} else {
-		n.Peers = make(map[string]string)
-	}
-	
+func (n *Node) Start() error {
+	n.Peers = make(map[string]string)
 	n.Peers[n.ID] = n.PeerAddr
 
 	lis, err := net.Listen("tcp", n.PeerAddr)
@@ -43,7 +33,12 @@ func (n *Node) Start() {
 	pb.RegisterNodeServer(grpcServer, n)
 
 	fmt.Printf("Node listening at %s\n", n.PeerAddr)
-	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatalf("Failed to serve: %v", err)
-	}
+
+	go func() {
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatalf("Failed to serve: %v", err)
+		}
+	}()
+
+	return nil
 }
