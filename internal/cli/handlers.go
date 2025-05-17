@@ -19,11 +19,17 @@ func HandleJoin(args []string, node *dht.Node) error {
 		return errors.New("no address provided")
 	}
 
+	if node.NodeState == dht.StateInDHT {
+		return errors.New("this node is already in DHT")
+	}
+
 	fmt.Println("Joining the DHT")
 	peers, err := node.ClientJoin(args[0])
 	if err != nil {
 		return err
 	}
+
+	node.NodeState = dht.StateInDHT
 
 	for id, peerAddr := range peers {
 		node.Peers[id] = peerAddr
