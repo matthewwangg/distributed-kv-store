@@ -37,5 +37,72 @@ func (n *Node) ClientJoin(joinAddr string) (map[string]string, error) {
 		peers[peer.Id] = peer.Addr
 	}
 
+	for _, peerAddr := range peers {
+		if peerAddr == n.PeerAddr {
+			continue
+		}
+		err := n.ClientNotifyRebuildComplete(peerAddr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to notify rebuild complete: %w", err)
+		}
+	}
+	n.NodeState = StateInDHT
+
 	return peers, nil
+}
+
+func (n *Node) ClientNotifyRebuild(peerList []*pb.Peer, newPeerId string, newPeerAddr string) error {
+	for _, peer := range peerList {
+		if peer.Id == n.ID || peer.Id == newPeerId {
+			continue
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		conn, err := grpc.NewClient(peer.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			cancel()
+			return fmt.Errorf("Failed to connect to peer %s at %s: %v\n", peer.Id, peer.Addr, err)
+		}
+
+		client := pb.NewNodeClient(conn)
+
+		res, err := client.NotifyRebuild(ctx, &pb.RebuildRequest{
+			Id:     newPeerId,
+			Addr:   newPeerAddr,
+			Reason: "join",
+		})
+
+		cancel()
+		conn.Close()
+
+		if err != nil || res.Success == false {
+			return fmt.Errorf("Failed to notify rebuild to peer %s: %v\n", peer.Id, err)
+		}
+	}
+
+	return nil
+}
+
+func (n *Node) ClientNotifyRebuildComplete(peerAddr string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	conn, err := grpc.NewClient(peerAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return fmt.Errorf("failed to create gRPC client: %w", err)
+	}
+	defer conn.Close()
+
+	client := pb.NewNodeClient(conn)
+
+	res, err := client.NotifyRebuildComplete(ctx, &pb.RebuildRequest{
+		Id:   n.ID,
+		Addr: n.PeerAddr,
+	})
+
+	if err != nil || res.Success == false {
+		return fmt.Errorf("failed to join DHT: %w", err)
+	}
+
+	return nil
 }

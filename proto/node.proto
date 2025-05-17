@@ -6,6 +6,8 @@ option go_package = "proto/node;node";
 
 service Node {
   rpc Join(JoinRequest) returns (JoinResponse);
+  rpc NotifyRebuild(RebuildRequest) returns (RebuildResponse);
+  rpc NotifyRebuildComplete(RebuildRequest) returns (RebuildResponse);
 }
 
 message JoinRequest {
@@ -15,6 +17,16 @@ message JoinRequest {
 
 message JoinResponse {
   repeated Peer peers = 1;
+}
+
+message RebuildRequest {
+  string id = 1;
+  string addr = 2;
+  string reason = 3;
+}
+
+message RebuildResponse {
+  bool success = 1;
 }
 
 message Peer {

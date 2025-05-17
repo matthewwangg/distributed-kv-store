@@ -13,8 +13,9 @@ import (
 type NodeState int
 
 const (
-	StateFree  NodeState = iota
-	StateInDHT NodeState = iota
+	StateFree       NodeState = iota
+	StateInDHT      NodeState = iota
+	StateRebuilding NodeState = iota
 )
 
 type Node struct {
