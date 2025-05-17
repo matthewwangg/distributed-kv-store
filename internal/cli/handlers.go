@@ -1,9 +1,11 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
-	"github.com/matthewwangg/distributed-kv-store/internal/dht"
 	"os"
+
+	dht "github.com/matthewwangg/distributed-kv-store/internal/dht"
 )
 
 func HandleHelp() {
@@ -13,7 +15,19 @@ func HandleHelp() {
 }
 
 func HandleJoin(args []string, node *dht.Node) error {
+	if len(args) < 1 {
+		return errors.New("no address provided")
+	}
+
 	fmt.Println("Joining the DHT")
+	peers, err := node.ClientJoin(args[0])
+	if err != nil {
+		return err
+	}
+
+	for id, peerAddr := range peers {
+		node.Peers[id] = peerAddr
+	}
 
 	return nil
 }
