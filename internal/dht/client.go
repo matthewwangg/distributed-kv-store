@@ -39,3 +39,34 @@ func (n *Node) ClientJoin(joinAddr string) (map[string]string, error) {
 
 	return peers, nil
 }
+
+func (n *Node) ClientNotifyRebuild(peerList []*pb.Peer) error {
+	for _, peer := range peerList {
+		if peer.Id == n.ID {
+			continue
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		conn, err := grpc.NewClient(peer.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			cancel()
+			return fmt.Errorf("Failed to connect to peer %s at %s: %v\n", peer.Id, peer.Addr, err)
+		}
+
+		client := pb.NewNodeClient(conn)
+
+		res, err := client.NotifyRebuild(ctx, &pb.RebuildRequest{
+			Id:   n.ID,
+			Addr: n.PeerAddr,
+		})
+
+		cancel()
+		conn.Close()
+
+		if err != nil || res.Success == false {
+			return fmt.Errorf("Failed to notify rebuild to peer %s: %v\n", peer.Id, err)
+		}
+	}
+
+	return nil
+}
