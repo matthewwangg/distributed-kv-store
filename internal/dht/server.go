@@ -34,3 +34,9 @@ func (n *Node) NotifyRebuild(ctx context.Context, req *pb.RebuildRequest) (*pb.R
 
 	return &pb.RebuildResponse{Success: true}, nil
 }
+
+func (n *Node) NotifyRebuildComplete(ctx context.Context, req *pb.RebuildRequest) (*pb.RebuildResponse, error) {
+	n.NodeState = StateInDHT
+
+	return &pb.RebuildResponse{Success: true}, nil
+}
