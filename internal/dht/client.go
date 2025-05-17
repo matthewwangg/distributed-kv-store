@@ -40,9 +40,9 @@ func (n *Node) ClientJoin(joinAddr string) (map[string]string, error) {
 	return peers, nil
 }
 
-func (n *Node) ClientNotifyRebuild(peerList []*pb.Peer) error {
+func (n *Node) ClientNotifyRebuild(peerList []*pb.Peer, newPeerId string, newPeerAddr string) error {
 	for _, peer := range peerList {
-		if peer.Id == n.ID {
+		if peer.Id == n.ID || peer.Id == newPeerId {
 			continue
 		}
 
@@ -56,8 +56,9 @@ func (n *Node) ClientNotifyRebuild(peerList []*pb.Peer) error {
 		client := pb.NewNodeClient(conn)
 
 		res, err := client.NotifyRebuild(ctx, &pb.RebuildRequest{
-			Id:   n.ID,
-			Addr: n.PeerAddr,
+			Id:     newPeerId,
+			Addr:   newPeerAddr,
+			Reason: "join",
 		})
 
 		cancel()

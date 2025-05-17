@@ -18,7 +18,7 @@ func (n *Node) Join(ctx context.Context, req *pb.JoinRequest) (*pb.JoinResponse,
 		})
 	}
 
-	err := n.ClientNotifyRebuild(peerList)
+	err := n.ClientNotifyRebuild(peerList, req.Id, req.Addr)
 	if err != nil {
 		return nil, err
 	}
@@ -28,6 +28,9 @@ func (n *Node) Join(ctx context.Context, req *pb.JoinRequest) (*pb.JoinResponse,
 
 func (n *Node) NotifyRebuild(ctx context.Context, req *pb.RebuildRequest) (*pb.RebuildResponse, error) {
 	n.NodeState = StateRebuilding
+	if req.Reason == "join" {
+		n.Peers[req.Id] = req.Addr
+	}
 
 	return &pb.RebuildResponse{Success: true}, nil
 }
