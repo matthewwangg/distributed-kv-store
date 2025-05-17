@@ -27,18 +27,28 @@ func RunREPL(node *dht.Node) {
 func Dispatch(line string, node *dht.Node) error {
 	line = strings.TrimSpace(line)
 
-	switch line {
+	parts := strings.Fields(line)
+	if len(parts) < 1 {
+		return nil
+	}
 
-	case "help":
-		fmt.Println("help command")
+	command := parts[0]
+	args := parts[1:]
+
+	var err error
+
+	switch command {
+
 	case "join":
-		fmt.Println("join command")
+		err = HandleJoin(args, node)
+	case "help":
+		HandleHelp()
 	case "exit":
-		fmt.Println("exit command")
+		HandleExit()
 	default:
-		fmt.Println("unsupported command")
+		fmt.Println("Unsupported command, please try again.")
 
 	}
 
-	return nil
+	return err
 }
