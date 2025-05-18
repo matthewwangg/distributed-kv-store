@@ -26,10 +26,32 @@ func (n *Node) Join(ctx context.Context, req *pb.MembershipChangeRequest) (*pb.M
 	return &pb.MembershipChangeResponse{Peers: peerList, Success: true}, nil
 }
 
+func (n *Node) Leave(ctx context.Context, req *pb.MembershipChangeRequest) (*pb.MembershipChangeResponse, error) {
+	n.NodeState = StateRebuilding
+	delete(n.Peers, req.Id)
+
+	var peerList []*pb.Peer
+	for id, addr := range n.Peers {
+		peerList = append(peerList, &pb.Peer{
+			Id:   id,
+			Addr: addr,
+		})
+	}
+
+	err := n.ClientNotifyRebuild(peerList, req.Id, req.Addr, pb.Reason_LEAVE)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.MembershipChangeResponse{Peers: peerList, Success: true}, nil
+}
+
 func (n *Node) NotifyRebuild(ctx context.Context, req *pb.RebuildRequest) (*pb.RebuildResponse, error) {
 	n.NodeState = StateRebuilding
 	if req.Reason == pb.Reason_JOIN {
 		n.Peers[req.Id] = req.Addr
+	} else if req.Reason == pb.Reason_LEAVE {
+		delete(n.Peers, req.Id)
 	}
 
 	return &pb.RebuildResponse{Success: true}, nil
