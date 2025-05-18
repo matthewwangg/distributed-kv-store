@@ -38,14 +38,9 @@ func (n *Node) ClientJoin(joinAddr string) (map[string]string, error) {
 		peers[peer.Id] = peer.Addr
 	}
 
-	for _, peerAddr := range peers {
-		if peerAddr == n.PeerAddr {
-			continue
-		}
-		err := n.ClientNotifyRebuildComplete(peerAddr, pb.Reason_JOIN)
-		if err != nil {
-			return nil, fmt.Errorf("failed to notify rebuild complete: %w", err)
-		}
+	err = n.ClientNotifyRebuildComplete(res.GetPeers(), pb.Reason_JOIN)
+	if err != nil {
+		return nil, fmt.Errorf("failed to notify rebuild complete: %w", err)
 	}
 	n.NodeState = StateInDHT
 
@@ -74,20 +69,9 @@ func (n *Node) ClientLeave(neighborAddr string) error {
 		return fmt.Errorf("failed to leave DHT: %w", err)
 	}
 
-	peers := make(map[string]string)
-
-	for _, peer := range res.GetPeers() {
-		peers[peer.Id] = peer.Addr
-	}
-
-	for _, peerAddr := range peers {
-		if peerAddr == n.PeerAddr {
-			continue
-		}
-		err := n.ClientNotifyRebuildComplete(peerAddr, pb.Reason_LEAVE)
-		if err != nil {
-			return fmt.Errorf("failed to notify rebuild complete: %w", err)
-		}
+	err = n.ClientNotifyRebuildComplete(res.GetPeers(), pb.Reason_LEAVE)
+	if err != nil {
+		return fmt.Errorf("failed to notify rebuild complete: %w", err)
 	}
 
 	return nil
@@ -130,28 +114,34 @@ func (n *Node) ClientNotifyRebuild(peerList []*pb.Peer, newPeerId string, newPee
 	return nil
 }
 
-func (n *Node) ClientNotifyRebuildComplete(peerAddr string, reason pb.Reason) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+func (n *Node) ClientNotifyRebuildComplete(peers []*pb.Peer, reason pb.Reason) error {
+	for _, peer := range peers {
+		if peer.Id == n.ID {
+			continue
+		}
 
-	conn, err := grpc.NewClient(peerAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return fmt.Errorf("failed to create gRPC client: %w", err)
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		conn, err := grpc.NewClient(peer.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			cancel()
+			return fmt.Errorf("failed to create gRPC client to %s: %w", peer.Id, err)
+		}
+
+		client := pb.NewNodeClient(conn)
+
+		res, err := client.NotifyRebuildComplete(ctx, &pb.RebuildRequest{
+			Id:     n.ID,
+			Addr:   n.PeerAddr,
+			Reason: reason,
+		})
+
+		cancel()
+		conn.Close()
+
+		if err != nil || res.Success == false {
+			return fmt.Errorf("failed to notify %s of rebuild complete: %v", peer.Id, err)
+		}
 	}
-	defer conn.Close()
-
-	client := pb.NewNodeClient(conn)
-
-	res, err := client.NotifyRebuildComplete(ctx, &pb.RebuildRequest{
-		Id:     n.ID,
-		Addr:   n.PeerAddr,
-		Reason: reason,
-	})
-
-	if err != nil || res.Success == false {
-		return fmt.Errorf("failed to join DHT: %w", err)
-	}
-
 	return nil
 }
 
