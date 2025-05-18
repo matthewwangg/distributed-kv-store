@@ -69,6 +69,12 @@ func (n *Node) ClientLeave(neighborAddr string) error {
 		return fmt.Errorf("failed to leave DHT: %w", err)
 	}
 
+	delete(n.Peers, n.ID)
+
+	if err := n.ClientStore(); err != nil {
+		return fmt.Errorf("failed to redistribute keys: %w", err)
+	}
+
 	err = n.ClientNotifyRebuildComplete(res.GetPeers(), pb.Reason_LEAVE)
 	if err != nil {
 		return fmt.Errorf("failed to notify rebuild complete: %w", err)
