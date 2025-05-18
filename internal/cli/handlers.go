@@ -62,8 +62,8 @@ func HandleLeave(node *dht.Node) error {
 
 	node.NodeState = dht.StateFree
 
-	node.Peers = make(map[string]string)
-
+	node.Peers = map[string]string{node.ID: node.PeerAddr}
+	
 	return nil
 }
 
