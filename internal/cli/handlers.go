@@ -10,7 +10,8 @@ import (
 
 func HandleHelp() {
 	fmt.Println("Available commands:")
-	fmt.Println("  join <addr>   Join another node in the DHT")
+	fmt.Println("  join <addr>   Join the DHT at <addr>")
+	fmt.Println("  leave 		 Leave the current DHT")
 	fmt.Println("  exit			 Exit the CLI")
 }
 
@@ -34,6 +35,34 @@ func HandleJoin(args []string, node *dht.Node) error {
 	for id, peerAddr := range peers {
 		node.Peers[id] = peerAddr
 	}
+
+	return nil
+}
+
+func HandleLeave(node *dht.Node) error {
+	if node.NodeState == dht.StateFree {
+		return errors.New("this node is already free")
+	}
+
+	fmt.Println("Leaving the DHT")
+	if len(node.Peers) > 1 {
+		neighbor := ""
+		for _, peerAddr := range node.Peers {
+			if peerAddr != node.PeerAddr {
+				neighbor = peerAddr
+				break
+			}
+		}
+
+		err := node.ClientLeave(neighbor)
+		if err != nil {
+			return err
+		}
+	}
+
+	node.NodeState = dht.StateFree
+
+	node.Peers = make(map[string]string)
 
 	return nil
 }
