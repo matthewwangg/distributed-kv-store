@@ -1,10 +1,13 @@
 package utils
 
 import (
+	"crypto/sha256"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 )
 
 func LoadKeyValueDir(dir string) (map[string]string, error) {
@@ -38,4 +41,28 @@ func LoadKeyValueDir(dir string) (map[string]string, error) {
 	}
 
 	return result, nil
+}
+
+func hashKeyToUint64(key string) uint64 {
+	sum := sha256.Sum256([]byte(key))
+	return binary.BigEndian.Uint64(sum[:8])
+}
+
+func GetResponsiblePeer(key string, peers map[string]string) string {
+	ids := make([]string, 0, len(peers))
+	for id := range peers {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+
+	h := hashKeyToUint64(key)
+
+	partitionSize := ^uint64(0) / uint64(len(ids))
+
+	index := int(h / partitionSize)
+	if index >= len(ids) {
+		index = len(ids) - 1
+	}
+
+	return peers[ids[index]]
 }
