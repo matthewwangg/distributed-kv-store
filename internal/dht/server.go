@@ -60,6 +60,11 @@ func (n *Node) NotifyRebuild(ctx context.Context, req *pb.RebuildRequest) (*pb.R
 		delete(n.Peers, req.Id)
 	}
 
+	err := n.ClientStore()
+	if err != nil {
+		return nil, err
+	}
+
 	return &pb.RebuildResponse{
 		Success: true,
 	}, nil

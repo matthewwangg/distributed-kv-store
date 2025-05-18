@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
+	utils "github.com/matthewwangg/distributed-kv-store/internal/utils"
 	pb "github.com/matthewwangg/distributed-kv-store/proto/node"
 )
 
@@ -93,6 +94,11 @@ func (n *Node) ClientLeave(neighborAddr string) error {
 }
 
 func (n *Node) ClientNotifyRebuild(peerList []*pb.Peer, newPeerId string, newPeerAddr string, reason pb.Reason) error {
+	err := n.ClientStore()
+	if err != nil {
+		return err
+	}
+
 	for _, peer := range peerList {
 		if peer.Id == n.ID || peer.Id == newPeerId {
 			continue
@@ -144,6 +150,49 @@ func (n *Node) ClientNotifyRebuildComplete(peerAddr string, reason pb.Reason) er
 
 	if err != nil || res.Success == false {
 		return fmt.Errorf("failed to join DHT: %w", err)
+	}
+
+	return nil
+}
+
+func (n *Node) ClientStore() error {
+	var toDelete []string
+
+	for key, value := range n.MemoryStore {
+		target := utils.GetResponsiblePeer(key, n.Peers)
+
+		if target == n.PeerAddr {
+			continue
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		conn, err := grpc.NewClient(target, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			cancel()
+			fmt.Printf("Failed to connect to peer %s: %v\n", target, err)
+			continue
+		}
+
+		client := pb.NewNodeClient(conn)
+
+		_, err = client.Store(ctx, &pb.StoreRequest{
+			Key:   key,
+			Value: value,
+		})
+
+		cancel()
+		conn.Close()
+
+		if err != nil {
+			fmt.Printf("Failed to store %s to %s: %v\n", key, target, err)
+			continue
+		}
+
+		toDelete = append(toDelete, key)
+	}
+
+	for _, key := range toDelete {
+		delete(n.MemoryStore, key)
 	}
 
 	return nil
