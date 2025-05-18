@@ -23,11 +23,11 @@ func (n *Node) ClientJoin(joinAddr string) (map[string]string, error) {
 
 	client := pb.NewNodeClient(conn)
 
-	res, err := client.Join(ctx, &pb.JoinRequest{
+	res, err := client.Join(ctx, &pb.MembershipChangeRequest{
 		Id:   n.ID,
 		Addr: n.PeerAddr,
 	})
-	if err != nil {
+	if err != nil || res.Success == false {
 		return nil, fmt.Errorf("failed to join DHT: %w", err)
 	}
 
@@ -41,7 +41,7 @@ func (n *Node) ClientJoin(joinAddr string) (map[string]string, error) {
 		if peerAddr == n.PeerAddr {
 			continue
 		}
-		err := n.ClientNotifyRebuildComplete(peerAddr)
+		err := n.ClientNotifyRebuildComplete(peerAddr, pb.Reason_JOIN)
 		if err != nil {
 			return nil, fmt.Errorf("failed to notify rebuild complete: %w", err)
 		}
@@ -51,7 +51,48 @@ func (n *Node) ClientJoin(joinAddr string) (map[string]string, error) {
 	return peers, nil
 }
 
-func (n *Node) ClientNotifyRebuild(peerList []*pb.Peer, newPeerId string, newPeerAddr string) error {
+func (n *Node) ClientLeave(neighborAddr string) error {
+	n.NodeState = StateFree
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	conn, err := grpc.NewClient(neighborAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return fmt.Errorf("failed to create gRPC client: %w", err)
+	}
+	defer conn.Close()
+
+	client := pb.NewNodeClient(conn)
+
+	res, err := client.Leave(ctx, &pb.MembershipChangeRequest{
+		Id:   n.ID,
+		Addr: n.PeerAddr,
+	})
+	if err != nil || res.Success == false {
+		return fmt.Errorf("failed to leave DHT: %w", err)
+	}
+
+	peers := make(map[string]string)
+
+	for _, peer := range res.GetPeers() {
+		peers[peer.Id] = peer.Addr
+	}
+
+	for _, peerAddr := range peers {
+		if peerAddr == n.PeerAddr {
+			continue
+		}
+		err := n.ClientNotifyRebuildComplete(peerAddr, pb.Reason_LEAVE)
+		if err != nil {
+			return fmt.Errorf("failed to notify rebuild complete: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (n *Node) ClientNotifyRebuild(peerList []*pb.Peer, newPeerId string, newPeerAddr string, reason pb.Reason) error {
 	for _, peer := range peerList {
 		if peer.Id == n.ID || peer.Id == newPeerId {
 			continue
@@ -69,7 +110,7 @@ func (n *Node) ClientNotifyRebuild(peerList []*pb.Peer, newPeerId string, newPee
 		res, err := client.NotifyRebuild(ctx, &pb.RebuildRequest{
 			Id:     newPeerId,
 			Addr:   newPeerAddr,
-			Reason: pb.Reason_JOIN,
+			Reason: reason,
 		})
 
 		cancel()
@@ -83,7 +124,7 @@ func (n *Node) ClientNotifyRebuild(peerList []*pb.Peer, newPeerId string, newPee
 	return nil
 }
 
-func (n *Node) ClientNotifyRebuildComplete(peerAddr string) error {
+func (n *Node) ClientNotifyRebuildComplete(peerAddr string, reason pb.Reason) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -96,8 +137,9 @@ func (n *Node) ClientNotifyRebuildComplete(peerAddr string) error {
 	client := pb.NewNodeClient(conn)
 
 	res, err := client.NotifyRebuildComplete(ctx, &pb.RebuildRequest{
-		Id:   n.ID,
-		Addr: n.PeerAddr,
+		Id:     n.ID,
+		Addr:   n.PeerAddr,
+		Reason: reason,
 	})
 
 	if err != nil || res.Success == false {

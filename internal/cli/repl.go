@@ -41,6 +41,8 @@ func Dispatch(line string, node *dht.Node) error {
 
 	case "join":
 		err = HandleJoin(args, node)
+	case "leave":
+		err = HandleLeave(node)
 	case "help":
 		HandleHelp()
 	case "exit":
