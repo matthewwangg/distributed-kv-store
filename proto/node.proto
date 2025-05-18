@@ -9,6 +9,12 @@ service Node {
   rpc Leave(MembershipChangeRequest) returns (MembershipChangeResponse);
   rpc NotifyRebuild(RebuildRequest) returns (RebuildResponse);
   rpc NotifyRebuildComplete(RebuildRequest) returns (RebuildResponse);
+  rpc Store(StoreRequest) returns (StoreResponse);
+}
+
+message Peer {
+  string id = 1;
+  string addr = 2;
 }
 
 message MembershipChangeRequest {
@@ -36,7 +42,12 @@ message RebuildResponse {
   bool success = 1;
 }
 
-message Peer {
-  string id = 1;
-  string addr = 2;
+message StoreRequest {
+  string key = 1;
+  string value = 2;
 }
+
+message StoreResponse {
+  bool success = 1;
+}
+

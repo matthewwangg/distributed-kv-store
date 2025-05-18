@@ -23,7 +23,10 @@ func (n *Node) Join(ctx context.Context, req *pb.MembershipChangeRequest) (*pb.M
 		return nil, err
 	}
 
-	return &pb.MembershipChangeResponse{Peers: peerList, Success: true}, nil
+	return &pb.MembershipChangeResponse{
+		Peers:   peerList,
+		Success: true,
+	}, nil
 }
 
 func (n *Node) Leave(ctx context.Context, req *pb.MembershipChangeRequest) (*pb.MembershipChangeResponse, error) {
@@ -43,7 +46,10 @@ func (n *Node) Leave(ctx context.Context, req *pb.MembershipChangeRequest) (*pb.
 		return nil, err
 	}
 
-	return &pb.MembershipChangeResponse{Peers: peerList, Success: true}, nil
+	return &pb.MembershipChangeResponse{
+		Peers:   peerList,
+		Success: true,
+	}, nil
 }
 
 func (n *Node) NotifyRebuild(ctx context.Context, req *pb.RebuildRequest) (*pb.RebuildResponse, error) {
@@ -54,11 +60,28 @@ func (n *Node) NotifyRebuild(ctx context.Context, req *pb.RebuildRequest) (*pb.R
 		delete(n.Peers, req.Id)
 	}
 
-	return &pb.RebuildResponse{Success: true}, nil
+	err := n.ClientStore()
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.RebuildResponse{
+		Success: true,
+	}, nil
 }
 
 func (n *Node) NotifyRebuildComplete(ctx context.Context, req *pb.RebuildRequest) (*pb.RebuildResponse, error) {
 	n.NodeState = StateInDHT
 
-	return &pb.RebuildResponse{Success: true}, nil
+	return &pb.RebuildResponse{
+		Success: true,
+	}, nil
+}
+
+func (n *Node) Store(ctx context.Context, req *pb.StoreRequest) (*pb.StoreResponse, error) {
+	n.MemoryStore[req.Key] = req.Value
+
+	return &pb.StoreResponse{
+		Success: true,
+	}, nil
 }
