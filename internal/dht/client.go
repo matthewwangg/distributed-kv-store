@@ -23,11 +23,11 @@ func (n *Node) ClientJoin(joinAddr string) (map[string]string, error) {
 
 	client := pb.NewNodeClient(conn)
 
-	res, err := client.Join(ctx, &pb.JoinRequest{
+	res, err := client.Join(ctx, &pb.MembershipChangeRequest{
 		Id:   n.ID,
 		Addr: n.PeerAddr,
 	})
-	if err != nil {
+	if err != nil || res.Success == false {
 		return nil, fmt.Errorf("failed to join DHT: %w", err)
 	}
 

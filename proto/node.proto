@@ -5,18 +5,20 @@ package node;
 option go_package = "proto/node;node";
 
 service Node {
-  rpc Join(JoinRequest) returns (JoinResponse);
+  rpc Join(MembershipChangeRequest) returns (MembershipChangeResponse);
+  rpc Leave(MembershipChangeRequest) returns (MembershipChangeResponse);
   rpc NotifyRebuild(RebuildRequest) returns (RebuildResponse);
   rpc NotifyRebuildComplete(RebuildRequest) returns (RebuildResponse);
 }
 
-message JoinRequest {
+message MembershipChangeRequest {
   string id = 1;
   string addr = 2;
 }
 
-message JoinResponse {
+message MembershipChangeResponse {
   repeated Peer peers = 1;
+  bool success = 2;
 }
 
 enum Reason {

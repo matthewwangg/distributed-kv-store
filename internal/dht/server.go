@@ -6,7 +6,7 @@ import (
 	pb "github.com/matthewwangg/distributed-kv-store/proto/node"
 )
 
-func (n *Node) Join(ctx context.Context, req *pb.JoinRequest) (*pb.JoinResponse, error) {
+func (n *Node) Join(ctx context.Context, req *pb.MembershipChangeRequest) (*pb.MembershipChangeResponse, error) {
 	n.NodeState = StateRebuilding
 	n.Peers[req.Id] = req.Addr
 
@@ -23,7 +23,7 @@ func (n *Node) Join(ctx context.Context, req *pb.JoinRequest) (*pb.JoinResponse,
 		return nil, err
 	}
 
-	return &pb.JoinResponse{Peers: peerList}, nil
+	return &pb.MembershipChangeResponse{Peers: peerList, Success: true}, nil
 }
 
 func (n *Node) NotifyRebuild(ctx context.Context, req *pb.RebuildRequest) (*pb.RebuildResponse, error) {
