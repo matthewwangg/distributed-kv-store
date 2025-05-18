@@ -19,18 +19,18 @@ const (
 )
 
 type Node struct {
-	ID        string            `json:"id"`
-	PeerAddr  string            `json:"peerAddr"`
-	DataDir   string            `json:"dataDir"`
-	Store     map[string]string `json:"store"`
-	Peers     map[string]string `json:"peers"`
-	NodeState NodeState         `json:"nodeState"`
+	ID          string            `json:"id"`
+	PeerAddr    string            `json:"peerAddr"`
+	DataDir     string            `json:"dataDir"`
+	MemoryStore map[string]string `json:"memoryStore"`
+	Peers       map[string]string `json:"peers"`
+	NodeState   NodeState         `json:"nodeState"`
 
 	pb.UnimplementedNodeServer
 }
 
 func (n *Node) Start() error {
-	n.Store = make(map[string]string)
+	n.MemoryStore = make(map[string]string)
 	n.Peers = make(map[string]string)
 	n.Peers[n.ID] = n.PeerAddr
 	n.NodeState = StateFree
