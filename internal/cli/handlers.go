@@ -20,7 +20,7 @@ func HandleJoin(args []string, node *dht.Node) error {
 		return errors.New("no address provided")
 	}
 
-	if node.NodeState == dht.StateInDHT {
+	if node.NodeState != dht.StateFree {
 		return errors.New("this node is already in DHT")
 	}
 
@@ -63,7 +63,7 @@ func HandleLeave(node *dht.Node) error {
 	node.NodeState = dht.StateFree
 
 	node.Peers = map[string]string{node.ID: node.PeerAddr}
-	
+
 	return nil
 }
 
