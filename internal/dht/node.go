@@ -7,6 +7,7 @@ import (
 
 	"google.golang.org/grpc"
 
+	utils "github.com/matthewwangg/distributed-kv-store/internal/utils"
 	pb "github.com/matthewwangg/distributed-kv-store/proto/node"
 )
 
@@ -30,10 +31,15 @@ type Node struct {
 }
 
 func (n *Node) Start() error {
-	n.MemoryStore = make(map[string]string)
 	n.Peers = make(map[string]string)
 	n.Peers[n.ID] = n.PeerAddr
 	n.NodeState = StateFree
+
+	kv, err := utils.LoadKeyValueDir(n.DataDir)
+	if err != nil {
+		return err
+	}
+	n.MemoryStore = kv
 
 	lis, err := net.Listen("tcp", n.PeerAddr)
 	if err != nil {
