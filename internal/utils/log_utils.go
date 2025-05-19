@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -15,8 +16,12 @@ type LogWriter struct {
 }
 
 func (lw LogWriter) Write(p []byte) (int, error) {
-	timestamp := time.Now().Format("13:01:05")
-	line := fmt.Sprintf("[%s] [INFO] [%s] [%s] %s\n", timestamp, lw.ID, lw.Addr, string(p))
+	timestamp := time.Now().Format("15:04:05")
+
+	msg := string(p)
+	msg = strings.TrimRight(msg, "\r\n")
+
+	line := fmt.Sprintf("[%s] [INFO] [%s] [%s] %s\n", timestamp, lw.ID, lw.Addr, msg)
 	return lw.Writer.Write([]byte(line))
 }
 
