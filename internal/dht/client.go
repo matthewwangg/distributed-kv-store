@@ -193,3 +193,27 @@ func (n *Node) ClientStore() error {
 
 	return nil
 }
+
+func (n *Node) ClientGet(addr string, key string) (string, error) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return "", fmt.Errorf("failed to create gRPC client to %s: %w", addr, err)
+	}
+
+	client := pb.NewNodeClient(conn)
+	res, err := client.Get(ctx, &pb.GetRequest{
+		Key: key,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to get %s from %s: %w", key, addr, err)
+	}
+	if res.Success == false {
+		return "", fmt.Errorf("key %s was not found", key)
+	}
+
+	return res.Value, nil
+}
