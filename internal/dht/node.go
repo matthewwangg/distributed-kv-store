@@ -1,7 +1,6 @@
 package dht
 
 import (
-	"fmt"
 	"log"
 	"net"
 
@@ -49,7 +48,7 @@ func (n *Node) Start() error {
 	grpcServer := grpc.NewServer()
 	pb.RegisterNodeServer(grpcServer, n)
 
-	fmt.Printf("Node listening at %s\n", n.PeerAddr)
+	log.Printf("Node listening at %s", n.PeerAddr)
 
 	go func() {
 		if err := grpcServer.Serve(lis); err != nil {

@@ -3,6 +3,7 @@ package dht
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"google.golang.org/grpc"
@@ -13,12 +14,13 @@ import (
 )
 
 func (n *Node) ClientJoin(joinAddr string) (map[string]string, error) {
+	log.Printf("[TRACE] Sending join request to %s", joinAddr)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	conn, err := grpc.NewClient(joinAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create gRPC client: %w", err)
+		return nil, fmt.Errorf("[ClientJoin] failed to create gRPC client: %w", err)
 	}
 	defer conn.Close()
 
@@ -29,25 +31,26 @@ func (n *Node) ClientJoin(joinAddr string) (map[string]string, error) {
 		Addr: n.PeerAddr,
 	})
 	if err != nil || res.Success == false {
-		return nil, fmt.Errorf("failed to join DHT: %w", err)
+		return nil, fmt.Errorf("[ClientJoin] join RPC failed: %w", err)
 	}
 
 	peers := make(map[string]string)
-
 	for _, peer := range res.GetPeers() {
 		peers[peer.Id] = peer.Addr
 	}
 
 	err = n.ClientNotifyRebuildComplete(res.GetPeers(), pb.Reason_JOIN)
 	if err != nil {
-		return nil, fmt.Errorf("failed to notify rebuild complete: %w", err)
+		return nil, fmt.Errorf("[ClientJoin] failed to notify rebuild complete: %w", err)
 	}
 	n.NodeState = StateInDHT
+	log.Println("[TRACE] Join process completed")
 
 	return peers, nil
 }
 
 func (n *Node) ClientLeave(neighborAddr string) error {
+	log.Printf("[TRACE] Sending leave request via neighbor %s", neighborAddr)
 	n.NodeState = StateFree
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -55,7 +58,7 @@ func (n *Node) ClientLeave(neighborAddr string) error {
 
 	conn, err := grpc.NewClient(neighborAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return fmt.Errorf("failed to create gRPC client: %w", err)
+		return fmt.Errorf("[ClientLeave] failed to create gRPC client: %w", err)
 	}
 	defer conn.Close()
 
@@ -66,27 +69,29 @@ func (n *Node) ClientLeave(neighborAddr string) error {
 		Addr: n.PeerAddr,
 	})
 	if err != nil || res.Success == false {
-		return fmt.Errorf("failed to leave DHT: %w", err)
+		return fmt.Errorf("[ClientLeave] leave RPC failed: %w", err)
 	}
 
 	delete(n.Peers, n.ID)
 
 	if err := n.ClientStore(); err != nil {
-		return fmt.Errorf("failed to redistribute keys: %w", err)
+		return fmt.Errorf("[ClientLeave] failed to redistribute keys: %w", err)
 	}
 
 	err = n.ClientNotifyRebuildComplete(res.GetPeers(), pb.Reason_LEAVE)
 	if err != nil {
-		return fmt.Errorf("failed to notify rebuild complete: %w", err)
+		return fmt.Errorf("[ClientLeave] failed to notify rebuild complete: %w", err)
 	}
 
+	log.Println("[TRACE] Leave process completed")
 	return nil
 }
 
 func (n *Node) ClientNotifyRebuild(peerList []*pb.Peer, newPeerId string, newPeerAddr string, reason pb.Reason) error {
+	log.Printf("[TRACE] Notifying peers of %s: %s", reason, newPeerId)
 	err := n.ClientStore()
 	if err != nil {
-		return err
+		return fmt.Errorf("[ClientNotifyRebuild] store error: %w", err)
 	}
 
 	for _, peer := range peerList {
@@ -98,7 +103,8 @@ func (n *Node) ClientNotifyRebuild(peerList []*pb.Peer, newPeerId string, newPee
 		conn, err := grpc.NewClient(peer.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			cancel()
-			return fmt.Errorf("Failed to connect to peer %s at %s: %v\n", peer.Id, peer.Addr, err)
+			log.Printf("[WARN] Could not contact peer %s at %s: %v", peer.Id, peer.Addr, err)
+			continue
 		}
 
 		client := pb.NewNodeClient(conn)
@@ -113,7 +119,8 @@ func (n *Node) ClientNotifyRebuild(peerList []*pb.Peer, newPeerId string, newPee
 		conn.Close()
 
 		if err != nil || res.Success == false {
-			return fmt.Errorf("Failed to notify rebuild to peer %s: %v\n", peer.Id, err)
+			log.Printf("[WARN] NotifyRebuild failed for %s: %v", peer.Id, err)
+			continue
 		}
 	}
 
@@ -121,6 +128,7 @@ func (n *Node) ClientNotifyRebuild(peerList []*pb.Peer, newPeerId string, newPee
 }
 
 func (n *Node) ClientNotifyRebuildComplete(peers []*pb.Peer, reason pb.Reason) error {
+	log.Printf("[TRACE] Sending NotifyRebuildComplete to peers for %s", reason)
 	for _, peer := range peers {
 		if peer.Id == n.ID {
 			continue
@@ -130,7 +138,8 @@ func (n *Node) ClientNotifyRebuildComplete(peers []*pb.Peer, reason pb.Reason) e
 		conn, err := grpc.NewClient(peer.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			cancel()
-			return fmt.Errorf("failed to create gRPC client to %s: %w", peer.Id, err)
+			log.Printf("[WARN] Could not contact peer %s: %v", peer.Id, err)
+			continue
 		}
 
 		client := pb.NewNodeClient(conn)
@@ -145,13 +154,15 @@ func (n *Node) ClientNotifyRebuildComplete(peers []*pb.Peer, reason pb.Reason) e
 		conn.Close()
 
 		if err != nil || res.Success == false {
-			return fmt.Errorf("failed to notify %s of rebuild complete: %v", peer.Id, err)
+			log.Printf("[WARN] NotifyRebuildComplete failed for %s: %v", peer.Id, err)
+			continue
 		}
 	}
 	return nil
 }
 
 func (n *Node) ClientStore() error {
+	log.Println("[TRACE] Starting ClientStore for key redistribution")
 	var toDelete []string
 
 	for key, value := range n.MemoryStore {
@@ -165,7 +176,7 @@ func (n *Node) ClientStore() error {
 		conn, err := grpc.NewClient(target, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			cancel()
-			fmt.Printf("Failed to connect to peer %s: %v\n", target, err)
+			log.Printf("[WARN] Failed to connect to peer %s: %v", target, err)
 			continue
 		}
 
@@ -180,7 +191,7 @@ func (n *Node) ClientStore() error {
 		conn.Close()
 
 		if err != nil {
-			fmt.Printf("Failed to store %s to %s: %v\n", key, target, err)
+			log.Printf("[WARN] Failed to store key %s to %s: %v", key, target, err)
 			continue
 		}
 
@@ -191,28 +202,30 @@ func (n *Node) ClientStore() error {
 		delete(n.MemoryStore, key)
 	}
 
+	log.Println("[TRACE] ClientStore completed")
 	return nil
 }
 
 func (n *Node) ClientGet(addr string, key string) (string, error) {
-
+	log.Printf("[TRACE] Sending ClientGet for key %s to %s", key, addr)
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return "", fmt.Errorf("failed to create gRPC client to %s: %w", addr, err)
+		return "", fmt.Errorf("[ClientGet] failed to connect to %s: %w", addr, err)
 	}
+	defer conn.Close()
 
 	client := pb.NewNodeClient(conn)
 	res, err := client.Get(ctx, &pb.GetRequest{
 		Key: key,
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to get %s from %s: %w", key, addr, err)
+		return "", fmt.Errorf("[ClientGet] RPC failed for %s: %w", key, err)
 	}
 	if res.Success == false {
-		return "", fmt.Errorf("key %s was not found", key)
+		return "", fmt.Errorf("[ClientGet] key %s was not found", key)
 	}
 
 	return res.Value, nil

@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"path/filepath"
 
@@ -20,7 +19,7 @@ func main() {
 	flag.Parse()
 
 	if *nodeIdentifier == "" || *peerAddress == "" {
-		log.Fatal("Both --id and --peer-addr are required.")
+		log.Fatal("[Startup] Both --id and --peer-addr are required.")
 	}
 
 	dataDir := *dataDirectory
@@ -34,11 +33,10 @@ func main() {
 		DataDir:  dataDir,
 	}
 
-	fmt.Printf("Starting node %s at %s (data: %s)\n", node.ID, node.PeerAddr, node.DataDir)
-
+	log.Printf("[TRACE] Starting node %s at %s (data: %s)", node.ID, node.PeerAddr, node.DataDir)
 	err := node.Start()
 	if err != nil {
-		log.Fatalf("Startup failed: %v", err)
+		log.Fatalf("[Startup] Failed to start node: %v", err)
 	}
 
 	cli.RunREPL(node)
