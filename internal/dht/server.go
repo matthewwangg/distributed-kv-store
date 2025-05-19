@@ -2,7 +2,9 @@ package dht
 
 import (
 	"context"
+	"errors"
 
+	utils "github.com/matthewwangg/distributed-kv-store/internal/utils"
 	pb "github.com/matthewwangg/distributed-kv-store/proto/node"
 )
 
@@ -83,5 +85,42 @@ func (n *Node) Store(ctx context.Context, req *pb.StoreRequest) (*pb.StoreRespon
 
 	return &pb.StoreResponse{
 		Success: true,
+	}, nil
+}
+
+func (n *Node) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, error) {
+	if n.NodeState != StateInDHT {
+		return nil, errors.New("node is not available to search")
+	}
+
+	target := utils.GetResponsiblePeer(req.Key, n.Peers)
+
+	if target != n.PeerAddr {
+		value, err := n.ClientGet(target, req.Key)
+		if err != nil {
+			return &pb.GetResponse{
+				Success: false,
+				Value:   "",
+			}, nil
+		}
+
+		return &pb.GetResponse{
+			Success: true,
+			Value:   value,
+		}, nil
+	}
+
+	value, ok := n.MemoryStore[req.Key]
+
+	if !ok {
+		return &pb.GetResponse{
+			Success: false,
+			Value:   "",
+		}, nil
+	}
+
+	return &pb.GetResponse{
+		Success: true,
+		Value:   value,
 	}, nil
 }
