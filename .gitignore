@@ -32,3 +32,6 @@ go.work.sum
 
 # Data folder
 data/
+
+# Logs folder
+logs/

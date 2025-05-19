@@ -3,6 +3,7 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -19,7 +20,7 @@ func RunREPL(node *dht.Node) {
 		}
 		line := scanner.Text()
 		if err := Dispatch(line, node); err != nil {
-			fmt.Println("Error:", err)
+			fmt.Printf("[ERROR] %v\n", err)
 		}
 	}
 }
@@ -38,7 +39,6 @@ func Dispatch(line string, node *dht.Node) error {
 	var err error
 
 	switch command {
-
 	case "join":
 		err = HandleJoin(args, node)
 	case "leave":
@@ -50,8 +50,8 @@ func Dispatch(line string, node *dht.Node) error {
 	case "exit":
 		HandleExit()
 	default:
-		fmt.Println("Unsupported command, please try again.")
-
+		err = fmt.Errorf("unknown command: %s", command)
+		log.Println("[TRACE] Unsupported command, please try again.")
 	}
 
 	return err

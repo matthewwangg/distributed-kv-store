@@ -1,7 +1,6 @@
 package dht
 
 import (
-	"fmt"
 	"log"
 	"net"
 
@@ -31,6 +30,10 @@ type Node struct {
 }
 
 func (n *Node) Start() error {
+	if err := utils.SetupLogger(n.ID, n.PeerAddr); err != nil {
+		log.Fatalf("failed to set up logger: %v", err)
+	}
+
 	n.Peers = make(map[string]string)
 	n.Peers[n.ID] = n.PeerAddr
 	n.NodeState = StateFree
@@ -49,7 +52,7 @@ func (n *Node) Start() error {
 	grpcServer := grpc.NewServer()
 	pb.RegisterNodeServer(grpcServer, n)
 
-	fmt.Printf("Node listening at %s\n", n.PeerAddr)
+	log.Printf("Node listening at %s", n.PeerAddr)
 
 	go func() {
 		if err := grpcServer.Serve(lis); err != nil {
