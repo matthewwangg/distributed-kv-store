@@ -30,6 +30,10 @@ type Node struct {
 }
 
 func (n *Node) Start() error {
+	if err := utils.SetupLogger(n.ID, n.PeerAddr); err != nil {
+		log.Fatalf("failed to set up logger: %v", err)
+	}
+
 	n.Peers = make(map[string]string)
 	n.Peers[n.ID] = n.PeerAddr
 	n.NodeState = StateFree
