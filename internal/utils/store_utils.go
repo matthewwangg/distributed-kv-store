@@ -57,12 +57,7 @@ func GetResponsiblePeer(key string, peers map[string]string) string {
 
 	h := hashKeyToUint64(key)
 
-	partitionSize := ^uint64(0) / uint64(len(ids))
-
-	index := int(h / partitionSize)
-	if index >= len(ids) {
-		index = len(ids) - 1
-	}
+	index := int(h % uint64(len(ids)))
 
 	return peers[ids[index]]
 }
