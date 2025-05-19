@@ -10,14 +10,15 @@ import (
 
 func HandleHelp() {
 	fmt.Println("Available commands:")
-	fmt.Println("  join <addr>   Join the DHT at <addr>")
-	fmt.Println("  leave 		 Leave the current DHT")
-	fmt.Println("  exit			 Exit the CLI")
+	fmt.Println("  join <addr>   		Join the DHT at <addr>")
+	fmt.Println("  leave 		 		Leave the current DHT")
+	fmt.Println("  query <addr> <key>   Query the DHT at <addr> for the given <key>")
+	fmt.Println("  exit			 		Exit the CLI")
 }
 
 func HandleJoin(args []string, node *dht.Node) error {
 	if len(args) < 1 {
-		return errors.New("no address provided")
+		return errors.New("usage: join <addr>")
 	}
 
 	if node.NodeState != dht.StateFree {
@@ -63,6 +64,29 @@ func HandleLeave(node *dht.Node) error {
 	node.NodeState = dht.StateFree
 
 	node.Peers = map[string]string{node.ID: node.PeerAddr}
+
+	return nil
+}
+
+func HandleQuery(args []string, node *dht.Node) error {
+	if len(args) < 2 {
+		return errors.New("usage: query <addr> <key>")
+	}
+
+	if node.NodeState != dht.StateFree {
+		return errors.New("this node is already part of a DHT")
+	}
+
+	addr := args[0]
+	key := args[1]
+
+	fmt.Printf("Getting the value for %s from the DHT\n", key)
+	value, err := node.ClientGet(addr, key)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(value)
 
 	return nil
 }
