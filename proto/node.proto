@@ -10,6 +10,7 @@ service Node {
   rpc NotifyRebuild(RebuildRequest) returns (RebuildResponse);
   rpc NotifyRebuildComplete(RebuildRequest) returns (RebuildResponse);
   rpc Store(StoreRequest) returns (StoreResponse);
+  rpc Get(GetRequest) returns (GetResponse);
 }
 
 message Peer {
@@ -49,5 +50,14 @@ message StoreRequest {
 
 message StoreResponse {
   bool success = 1;
+}
+
+message GetRequest {
+  string key = 1;
+}
+
+message GetResponse {
+  bool success = 1;
+  string value = 2;
 }
 
