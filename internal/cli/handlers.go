@@ -38,6 +38,7 @@ func HandleJoin(args []string, node *dht.Node) error {
 		node.Peers[id] = peerAddr
 	}
 
+	fmt.Println("Join command successful!")
 	log.Println("[TRACE] Join command completed")
 	return nil
 }
@@ -66,6 +67,7 @@ func HandleLeave(node *dht.Node) error {
 	node.NodeState = dht.StateFree
 	node.Peers = map[string]string{node.ID: node.PeerAddr}
 
+	fmt.Println("Leave command successful!")
 	log.Println("[TRACE] Leave command completed")
 	return nil
 }
@@ -88,12 +90,14 @@ func HandleQuery(args []string, node *dht.Node) error {
 		return fmt.Errorf("[HandleQuery] query failed: %w", err)
 	}
 
-	fmt.Println(value)
+	fmt.Println("Query command successful!")
+	fmt.Printf("Value is %s\n", value)
 	log.Printf("[TRACE] Query command completed with key %s matching value %s\n", key, value)
 	return nil
 }
 
 func HandleExit() {
+	fmt.Println("Exiting...")
 	log.Println("[TRACE] Exiting...")
 	os.Exit(0)
 }
