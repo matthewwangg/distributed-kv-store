@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"os"
 	"path/filepath"
 
 	cli "github.com/matthewwangg/distributed-kv-store/internal/cli"
@@ -25,6 +26,10 @@ func main() {
 	dataDir := *dataDirectory
 	if dataDir == "" {
 		dataDir = filepath.Join("data", *nodeIdentifier)
+	}
+
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
+		log.Fatalf("[Startup] Failed to create data directory: %v", err)
 	}
 
 	node := &dht.Node{
