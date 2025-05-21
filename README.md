@@ -26,13 +26,66 @@ distributed-kv-store
 
 ## 🚀 Usage
 
-### Build
+### Run with Docker (Recommended)
+
+#### Build the Docker Image
+
+```bash
+docker build -t kv-store-node .
+```
+
+#### Run a Node
+
+```bash
+docker run -it --rm \
+  --name=node1 \
+  kv-store-node \
+  --id=node1 --peer-addr=node1:8080
+```
+
+> ✅ Data files should be embedded in the image under `/data/node1/` via `COPY data /data` in the Dockerfile.
+
+#### Multi-Node Example
+
+Create a Docker network:
+
+```bash
+docker network create kv-net
+```
+
+Start node1:
+
+```bash
+docker run -it --rm --network=kv-net \
+  --name=node1 -p 8080:8080 \
+  kv-store-node \
+  --id=node1 --peer-addr=node1:8080
+```
+
+Start node2:
+
+```bash
+docker run -it --rm --network=kv-net \
+  --name=node2 -p 8081:8081 \
+  kv-store-node \
+  --id=node2 --peer-addr=node2:8081
+```
+
+Join from node2's CLI:
+
+```text
+join node1:8080
+```
+
+### Run Without Docker (Optional)
+
+#### Build Locally
 
 ```bash
 go build -o kv-node ./cmd
 ```
 
-### Start a Node
+#### Start a Node
 
 ```bash
 ./kv-node --id=node1 --peer-addr=127.0.0.1:8001
