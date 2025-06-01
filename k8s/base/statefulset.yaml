@@ -19,6 +19,7 @@ spec:
           args:
             - "--id=$(POD_NAME)"
             - "--peer-addr=$(POD_NAME).kv-store:50051"
+            - "--join-addr=$(JOIN_ADDR)"
           ports:
             - containerPort: 50051
           env:
@@ -26,3 +27,5 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: JOIN_ADDR
+              value: "kv-store-0.kv-store:50051"
