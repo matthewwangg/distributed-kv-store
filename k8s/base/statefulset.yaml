@@ -16,6 +16,7 @@ spec:
       containers:
         - name: node
           image: kv-node:latest
+          imagePullPolicy: Never
           args:
             - "--id=$(POD_NAME)"
             - "--peer-addr=$(POD_NAME).kv-store:50051"

@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	cli "github.com/matthewwangg/distributed-kv-store/internal/cli"
 	dht "github.com/matthewwangg/distributed-kv-store/internal/dht"
@@ -33,9 +34,15 @@ func main() {
 		log.Fatalf("[Startup] Failed to create data directory: %v", err)
 	}
 
+	if len(strings.Split(*peerAddress, ":")) != 2 {
+		log.Fatal("[Startup] Invalid peer address.")
+	}
+	bindAddr := ":" + strings.Split(*peerAddress, ":")[1]
+
 	node := &dht.Node{
 		ID:       *nodeIdentifier,
 		PeerAddr: *peerAddress,
+		BindAddr: bindAddr,
 		JoinAddr: *joinAddress,
 		DataDir:  dataDir,
 	}

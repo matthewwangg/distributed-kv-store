@@ -21,6 +21,7 @@ const (
 type Node struct {
 	ID          string            `json:"id"`
 	PeerAddr    string            `json:"peerAddr"`
+	BindAddr    string            `json:"bindAddr"`
 	JoinAddr    string            `json:"joinAddr"`
 	DataDir     string            `json:"dataDir"`
 	MemoryStore map[string]string `json:"memoryStore"`
@@ -33,7 +34,6 @@ type Node struct {
 func (n *Node) Start() error {
 	if err := utils.SetupLogger(n.ID, n.PeerAddr); err != nil {
 		log.Fatalf("failed to set up logger: %v", err)
-	}
 
 	n.Peers = make(map[string]string)
 	n.Peers[n.ID] = n.PeerAddr
@@ -45,9 +45,9 @@ func (n *Node) Start() error {
 	}
 	n.MemoryStore = kv
 
-	lis, err := net.Listen("tcp", n.PeerAddr)
+	lis, err := net.Listen("tcp", n.BindAddr)
 	if err != nil {
-		log.Fatalf("Failed to listen on %s: %v", n.PeerAddr, err)
+		log.Fatalf("Failed to listen on %s: %v", n.BindAddr, err)
 	}
 
 	grpcServer := grpc.NewServer()
