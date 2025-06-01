@@ -57,5 +57,10 @@ func main() {
 		log.Fatalf("[Startup] Failed to join node: %v", err)
 	}
 
+	if os.Getenv("MODE") == "k8s" {
+		log.Println("[Startup] Running in K8s mode — waiting indefinitely.")
+		select {}
+	}
+
 	cli.RunREPL(node)
 }

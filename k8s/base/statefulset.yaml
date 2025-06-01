@@ -30,3 +30,5 @@ spec:
                   fieldPath: metadata.name
             - name: JOIN_ADDR
               value: "kv-store-0.kv-store:50051"
+            - name: MODE
+              value: "k8s"

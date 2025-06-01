@@ -1,8 +1,11 @@
 package dht
 
 import (
+	"fmt"
 	"log"
 	"net"
+	"os"
+	"time"
 
 	"google.golang.org/grpc"
 
@@ -32,9 +35,12 @@ type Node struct {
 }
 
 func (n *Node) Start() error {
-	if err := utils.SetupLogger(n.ID, n.PeerAddr); err != nil {
-		log.Fatalf("failed to set up logger: %v", err)
-
+	if os.Getenv("MODE") != "k8s" {
+		if err := utils.SetupLogger(n.ID, n.PeerAddr); err != nil {
+			log.Fatalf("failed to set up logger: %v", err)
+		}
+	}
+	
 	n.Peers = make(map[string]string)
 	n.Peers[n.ID] = n.PeerAddr
 	n.NodeState = StateFree
@@ -71,9 +77,18 @@ func (n *Node) BootstrapJoin() error {
 	}
 
 	log.Printf("[BootstrapJoin] Attempting to join DHT at %s", n.JoinAddr)
-	peers, err := n.ClientJoin(n.JoinAddr)
+	var peers map[string]string
+	var err error
+	for i := 0; i < 5; i++ {
+		peers, err = n.ClientJoin(n.JoinAddr)
+		if err == nil {
+			break
+		}
+		log.Printf("[BootstrapJoin] Join attempt %d failed: %v", i+1, err)
+		time.Sleep(2 * time.Second)
+	}
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to join after retries: %w", err)
 	}
 
 	for id, addr := range peers {
