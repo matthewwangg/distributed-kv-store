@@ -21,6 +21,7 @@ const (
 type Node struct {
 	ID          string            `json:"id"`
 	PeerAddr    string            `json:"peerAddr"`
+	JoinAddr    string            `json:"joinAddr"`
 	DataDir     string            `json:"dataDir"`
 	MemoryStore map[string]string `json:"memoryStore"`
 	Peers       map[string]string `json:"peers"`
@@ -60,5 +61,26 @@ func (n *Node) Start() error {
 		}
 	}()
 
+	return nil
+}
+
+func (n *Node) BootstrapJoin() error {
+	if n.JoinAddr == "" || n.JoinAddr == n.PeerAddr {
+		log.Printf("[BootstrapJoin] No valid join address; skipping.")
+		return nil
+	}
+
+	log.Printf("[BootstrapJoin] Attempting to join DHT at %s", n.JoinAddr)
+	peers, err := n.ClientJoin(n.JoinAddr)
+	if err != nil {
+		return err
+	}
+
+	for id, addr := range peers {
+		n.Peers[id] = addr
+	}
+
+	n.NodeState = StateInDHT
+	log.Printf("[BootstrapJoin] Successfully joined DHT with peers: %+v", n.Peers)
 	return nil
 }
