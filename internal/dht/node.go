@@ -1,8 +1,11 @@
 package dht
 
 import (
+	"fmt"
 	"log"
 	"net"
+	"os"
+	"time"
 
 	"google.golang.org/grpc"
 
@@ -21,6 +24,8 @@ const (
 type Node struct {
 	ID          string            `json:"id"`
 	PeerAddr    string            `json:"peerAddr"`
+	BindAddr    string            `json:"bindAddr"`
+	JoinAddr    string            `json:"joinAddr"`
 	DataDir     string            `json:"dataDir"`
 	MemoryStore map[string]string `json:"memoryStore"`
 	Peers       map[string]string `json:"peers"`
@@ -30,8 +35,10 @@ type Node struct {
 }
 
 func (n *Node) Start() error {
-	if err := utils.SetupLogger(n.ID, n.PeerAddr); err != nil {
-		log.Fatalf("failed to set up logger: %v", err)
+	if os.Getenv("MODE") != "k8s" {
+		if err := utils.SetupLogger(n.ID, n.PeerAddr); err != nil {
+			log.Fatalf("failed to set up logger: %v", err)
+		}
 	}
 
 	n.Peers = make(map[string]string)
@@ -44,9 +51,9 @@ func (n *Node) Start() error {
 	}
 	n.MemoryStore = kv
 
-	lis, err := net.Listen("tcp", n.PeerAddr)
+	lis, err := net.Listen("tcp", n.BindAddr)
 	if err != nil {
-		log.Fatalf("Failed to listen on %s: %v", n.PeerAddr, err)
+		log.Fatalf("Failed to listen on %s: %v", n.BindAddr, err)
 	}
 
 	grpcServer := grpc.NewServer()
@@ -60,5 +67,37 @@ func (n *Node) Start() error {
 		}
 	}()
 
+	return nil
+}
+
+func (n *Node) BootstrapJoin() error {
+	time.Sleep(1 * time.Second)
+	
+	if n.JoinAddr == "" || n.JoinAddr == n.PeerAddr {
+		log.Printf("[BootstrapJoin] No valid join address; skipping.")
+		return nil
+	}
+
+	log.Printf("[BootstrapJoin] Attempting to join DHT at %s", n.JoinAddr)
+	var peers map[string]string
+	var err error
+	for i := 0; i < 5; i++ {
+		peers, err = n.ClientJoin(n.JoinAddr)
+		if err == nil {
+			break
+		}
+		log.Printf("[BootstrapJoin] Join attempt %d failed: %v", i+1, err)
+		time.Sleep(2 * time.Second)
+	}
+	if err != nil {
+		return fmt.Errorf("failed to join after retries: %w", err)
+	}
+
+	for id, addr := range peers {
+		n.Peers[id] = addr
+	}
+
+	n.NodeState = StateInDHT
+	log.Printf("[BootstrapJoin] Successfully joined DHT with peers: %+v", n.Peers)
 	return nil
 }

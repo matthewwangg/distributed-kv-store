@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kv-store
+spec:
+  serviceName: kv-store
+  replicas: 5
+  selector:
+    matchLabels:
+      app: kv-store
+  template:
+    metadata:
+      labels:
+        app: kv-store
+    spec:
+      containers:
+        - name: node
+          image: kv-node:latest
+          imagePullPolicy: Never
+          args:
+            - "--id=$(POD_NAME)"
+            - "--peer-addr=$(POD_NAME).kv-store:50051"
+            - "--join-addr=$(JOIN_ADDR)"
+          ports:
+            - containerPort: 50051
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: JOIN_ADDR
+              value: "kv-store-0.kv-store:50051"
+            - name: MODE
+              value: "k8s"
