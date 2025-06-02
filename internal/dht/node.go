@@ -40,7 +40,7 @@ func (n *Node) Start() error {
 			log.Fatalf("failed to set up logger: %v", err)
 		}
 	}
-	
+
 	n.Peers = make(map[string]string)
 	n.Peers[n.ID] = n.PeerAddr
 	n.NodeState = StateFree
@@ -71,6 +71,8 @@ func (n *Node) Start() error {
 }
 
 func (n *Node) BootstrapJoin() error {
+	time.Sleep(1 * time.Second)
+	
 	if n.JoinAddr == "" || n.JoinAddr == n.PeerAddr {
 		log.Printf("[BootstrapJoin] No valid join address; skipping.")
 		return nil
