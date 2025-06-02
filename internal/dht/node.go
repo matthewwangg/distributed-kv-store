@@ -59,7 +59,7 @@ func (n *Node) Start() error {
 	grpcServer := grpc.NewServer()
 	pb.RegisterNodeServer(grpcServer, n)
 
-	log.Printf("Node listening at %s", n.PeerAddr)
+	log.Printf("Node listening at %s", n.BindAddr)
 
 	go func() {
 		if err := grpcServer.Serve(lis); err != nil {
@@ -72,7 +72,7 @@ func (n *Node) Start() error {
 
 func (n *Node) BootstrapJoin() error {
 	time.Sleep(1 * time.Second)
-	
+
 	if n.JoinAddr == "" || n.JoinAddr == n.PeerAddr {
 		log.Printf("[BootstrapJoin] No valid join address; skipping.")
 		return nil
